@@ -69,7 +69,7 @@ This normalized schema avoids JSON columns for tags, enabling efficient JOIN-bas
 
 ### Prerequisites
 
-- PHP 8.2 or higher
+- PHP 8.4 or higher
 - Composer
 - MySQL 8.0
 

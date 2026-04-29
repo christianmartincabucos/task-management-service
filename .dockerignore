@@ -1,0 +1,15 @@
+/vendor
+/node_modules
+/.git
+/.env
+/.env.example
+/.env.testing
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/.idea
+/.vscode
+*.md
+docker-compose.yml
+Dockerfile

@@ -1,0 +1,743 @@
+{
+	"info": {
+		"_postman_id": "tms-api-collection",
+		"name": "Translation Management Service API",
+		"description": "API-driven Translation Management Service built with Laravel. Supports multi-locale translations, contextual tagging, search, and JSON export for frontend applications.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"description": "User registration, login, and logout endpoints.",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"    console.log('Token saved: ' + jsonData.token);",
+									"}",
+									"",
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has token', function () {",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});",
+									"",
+									"pm.test('Response has user', function () {",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    pm.expect(jsonData.user).to.have.property('id');",
+									"    pm.expect(jsonData.user).to.have.property('name');",
+									"    pm.expect(jsonData.user).to.have.property('email');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						},
+						"description": "Register a new user. The token is automatically saved to the collection variable for subsequent requests."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('token', jsonData.token);",
+									"    console.log('Token saved: ' + jsonData.token);",
+									"}",
+									"",
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has token', function () {",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						},
+						"description": "Login and receive a Bearer token. The token is automatically saved to the collection variable."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Logged out message', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql('Logged out successfully.');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": ["{{base_url}}"],
+							"path": ["logout"]
+						},
+						"description": "Revoke the current API token (logout). Requires authentication."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Translations",
+			"description": "CRUD operations and search for translations.",
+			"item": [
+				{
+					"name": "List Translations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has data array', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Response has pagination meta', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('meta');",
+									"    pm.expect(jsonData.meta).to.have.property('total');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations",
+							"host": ["{{base_url}}"],
+							"path": ["translations"]
+						},
+						"description": "Get a paginated list of all translations."
+					},
+					"response": []
+				},
+				{
+					"name": "List Translations (Filter by Locale)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations?locale=en",
+							"host": ["{{base_url}}"],
+							"path": ["translations"],
+							"query": [
+								{
+									"key": "locale",
+									"value": "en",
+									"description": "Filter by locale code"
+								}
+							]
+						},
+						"description": "Filter translations by a specific locale (e.g., en, fr, es)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Translations (Filter by Tag)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations?tag=mobile",
+							"host": ["{{base_url}}"],
+							"path": ["translations"],
+							"query": [
+								{
+									"key": "tag",
+									"value": "mobile",
+									"description": "Filter by tag name"
+								}
+							]
+						},
+						"description": "Filter translations by tag name (e.g., mobile, desktop, web)."
+					},
+					"response": []
+				},
+				{
+					"name": "List Translations (Filter by Key)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations?key=auth.login",
+							"host": ["{{base_url}}"],
+							"path": ["translations"],
+							"query": [
+								{
+									"key": "key",
+									"value": "auth.login",
+									"description": "Filter by exact key match"
+								}
+							]
+						},
+						"description": "Filter translations by exact key match."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Translations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations?search=welcome",
+							"host": ["{{base_url}}"],
+							"path": ["translations"],
+							"query": [
+								{
+									"key": "search",
+									"value": "welcome",
+									"description": "Partial match search in key and content"
+								}
+							]
+						},
+						"description": "Search translations by partial match on key or content."
+					},
+					"response": []
+				},
+				{
+					"name": "List Translations (Combined Filters)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations?locale=en&tag=web&search=welcome&per_page=50",
+							"host": ["{{base_url}}"],
+							"path": ["translations"],
+							"query": [
+								{
+									"key": "locale",
+									"value": "en"
+								},
+								{
+									"key": "tag",
+									"value": "web"
+								},
+								{
+									"key": "search",
+									"value": "welcome"
+								},
+								{
+									"key": "per_page",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Combine multiple filters: locale + tag + search + pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Translation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Translation created with correct data', function () {",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data.key).to.eql('auth.welcome');",
+									"    pm.expect(jsonData.data.locale).to.eql('en');",
+									"    pm.expect(jsonData.data.content).to.eql('Welcome to our platform!');",
+									"});",
+									"",
+									"pm.test('Tags are attached', function () {",
+									"    pm.expect(jsonData.data.tags).to.include('web');",
+									"    pm.expect(jsonData.data.tags).to.include('mobile');",
+									"});",
+									"",
+									"if (jsonData.data && jsonData.data.id) {",
+									"    pm.collectionVariables.set('translation_id', jsonData.data.id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"auth.welcome\",\n    \"locale\": \"en\",\n    \"content\": \"Welcome to our platform!\",\n    \"tags\": [\"web\", \"mobile\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/translations",
+							"host": ["{{base_url}}"],
+							"path": ["translations"]
+						},
+						"description": "Create a new translation with optional tags. The created ID is saved for subsequent requests."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Translation (French)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"auth.welcome\",\n    \"locale\": \"fr\",\n    \"content\": \"Bienvenue sur notre plateforme!\",\n    \"tags\": [\"web\", \"mobile\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/translations",
+							"host": ["{{base_url}}"],
+							"path": ["translations"]
+						},
+						"description": "Create the same translation key in French locale."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Translation (Spanish)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"auth.welcome\",\n    \"locale\": \"es\",\n    \"content\": \"¡Bienvenido a nuestra plataforma!\",\n    \"tags\": [\"web\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/translations",
+							"host": ["{{base_url}}"],
+							"path": ["translations"]
+						},
+						"description": "Create the same translation key in Spanish locale."
+					},
+					"response": []
+				},
+				{
+					"name": "View Translation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has translation data', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('id');",
+									"    pm.expect(jsonData.data).to.have.property('key');",
+									"    pm.expect(jsonData.data).to.have.property('locale');",
+									"    pm.expect(jsonData.data).to.have.property('content');",
+									"    pm.expect(jsonData.data).to.have.property('tags');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations/{{translation_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["translations", "{{translation_id}}"]
+						},
+						"description": "View a single translation by ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Translation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Content was updated', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.content).to.eql('Welcome back to our platform!');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Welcome back to our platform!\",\n    \"tags\": [\"web\", \"mobile\", \"desktop\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/translations/{{translation_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["translations", "{{translation_id}}"]
+						},
+						"description": "Update a translation's content and/or tags. All fields are optional (partial update)."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Translation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Deleted message', function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql('Translation deleted successfully.');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/translations/{{translation_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["translations", "{{translation_id}}"]
+						},
+						"description": "Delete a translation by ID. Also removes associated pivot records."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Export",
+			"description": "JSON export endpoints for frontend consumption.",
+			"item": [
+				{
+					"name": "Export All Translations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Has Cache-Control header', function () {",
+									"    pm.response.to.have.header('Cache-Control');",
+									"});",
+									"",
+									"pm.test('Has ETag header', function () {",
+									"    pm.response.to.have.header('ETag');",
+									"});",
+									"",
+									"pm.test('Response time is under 500ms', function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(500);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/export",
+							"host": ["{{base_url}}"],
+							"path": ["export"]
+						},
+						"description": "Export all translations grouped by locale:\n```json\n{\n  \"en\": { \"auth.welcome\": \"Welcome!\" },\n  \"fr\": { \"auth.welcome\": \"Bienvenue!\" }\n}\n```\nIncludes CDN-friendly Cache-Control and ETag headers."
+					},
+					"response": []
+				},
+				{
+					"name": "Export by Locale (English)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is flat key-value', function () {",
+									"    var jsonData = pm.response.json();",
+									"    // Should be flat: { key: value } not nested by locale",
+									"    var keys = Object.keys(jsonData);",
+									"    if (keys.length > 0) {",
+									"        pm.expect(typeof jsonData[keys[0]]).to.eql('string');",
+									"    }",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/export/en",
+							"host": ["{{base_url}}"],
+							"path": ["export", "en"]
+						},
+						"description": "Export translations for English locale only:\n```json\n{\n  \"auth.welcome\": \"Welcome!\",\n  \"nav.home\": \"Home\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Export by Locale (French)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/export/fr",
+							"host": ["{{base_url}}"],
+							"path": ["export", "fr"]
+						},
+						"description": "Export translations for French locale only."
+					},
+					"response": []
+				},
+				{
+					"name": "Export by Locale (Spanish)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/export/es",
+							"host": ["{{base_url}}"],
+							"path": ["export", "es"]
+						},
+						"description": "Export translations for Spanish locale only."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

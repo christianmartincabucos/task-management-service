@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  title: Translation Management Service API
+  description: |
+    API-driven service for managing translations across multiple locales.
+    Supports CRUD operations, tagging, search, and JSON export for frontend applications.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development server
+  - url: http://localhost:8000/api
+    description: Docker development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum Token
+
+  schemas:
+    Translation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        key:
+          type: string
+          example: "auth.login"
+        locale:
+          type: string
+          example: "en"
+        content:
+          type: string
+          example: "Please log in to continue"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["web", "mobile"]
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00+00:00"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00+00:00"
+
+    StoreTranslationRequest:
+      type: object
+      required:
+        - key
+        - locale
+        - content
+      properties:
+        key:
+          type: string
+          maxLength: 255
+          example: "auth.welcome"
+        locale:
+          type: string
+          maxLength: 10
+          example: "en"
+        content:
+          type: string
+          example: "Welcome to our platform"
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          example: ["web", "mobile"]
+
+    UpdateTranslationRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          maxLength: 255
+          example: "auth.welcome"
+        locale:
+          type: string
+          maxLength: 10
+          example: "en"
+        content:
+          type: string
+          example: "Welcome back!"
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          example: ["web"]
+
+    AuthRegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - password_confirmation
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "password123"
+        password_confirmation:
+          type: string
+          format: password
+          example: "password123"
+
+    AuthLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+        token:
+          type: string
+          example: "1|abc123def456..."
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        to:
+          type: integer
+        total:
+          type: integer
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+paths:
+  /register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account and returns an API token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: Login
+      description: Authenticate a user and return an API token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout
+      description: Revoke the current API token.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully."
+        '401':
+          description: Unauthenticated
+
+  /translations:
+    get:
+      tags:
+        - Translations
+      summary: List translations
+      description: |
+        Get a paginated list of translations with optional filtering.
+        Supports filtering by locale, key, tag, and full-text search.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+          description: Filter by locale (e.g., en, fr, es)
+          example: "en"
+        - name: key
+          in: query
+          schema:
+            type: string
+          description: Filter by exact key match
+          example: "auth.login"
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Filter by tag name
+          example: "mobile"
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in key and content (partial match)
+          example: "welcome"
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of results per page
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+      responses:
+        '200':
+          description: Paginated list of translations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Translation'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthenticated
+
+    post:
+      tags:
+        - Translations
+      summary: Create a translation
+      description: Create a new translation entry with optional tags.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreTranslationRequest'
+      responses:
+        '201':
+          description: Translation created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Unauthenticated
+
+  /translations/{id}:
+    get:
+      tags:
+        - Translations
+      summary: View a translation
+      description: Get a single translation by ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Translation details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '404':
+          description: Translation not found
+        '401':
+          description: Unauthenticated
+
+    put:
+      tags:
+        - Translations
+      summary: Update a translation
+      description: Update an existing translation. All fields are optional for partial updates.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTranslationRequest'
+      responses:
+        '200':
+          description: Translation updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Translation'
+        '404':
+          description: Translation not found
+        '422':
+          description: Validation error
+        '401':
+          description: Unauthenticated
+
+    delete:
+      tags:
+        - Translations
+      summary: Delete a translation
+      description: Delete a translation by ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Translation deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Translation deleted successfully."
+        '404':
+          description: Translation not found
+        '401':
+          description: Unauthenticated
+
+  /export/{locale}:
+    get:
+      tags:
+        - Export
+      summary: Export translations as JSON
+      description: |
+        Export all translations as a JSON object grouped by locale and key.
+        Optimized for large datasets with caching.
+        
+        **Response format (all locales):**
+        ```json
+        {
+          "en": { "auth.login": "Log in", "auth.register": "Register" },
+          "fr": { "auth.login": "Se connecter", "auth.register": "S'inscrire" }
+        }
+        ```
+        
+        **Response format (single locale):**
+        ```json
+        {
+          "auth.login": "Log in",
+          "auth.register": "Register"
+        }
+        ```
+        
+        Includes CDN-friendly cache headers (Cache-Control, ETag).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: locale
+          in: path
+          required: false
+          schema:
+            type: string
+          description: Optional locale filter (e.g., en, fr, es)
+          example: "en"
+      responses:
+        '200':
+          description: JSON export of translations
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: "public, max-age=60, s-maxage=300"
+            ETag:
+              schema:
+                type: string
+              example: "abc123def456"
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  oneOf:
+                    - type: object
+                      additionalProperties:
+                        type: string
+                    - type: string
+        '401':
+          description: Unauthenticated

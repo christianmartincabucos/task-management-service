@@ -1,0 +1,71 @@
+services:
+  # Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        user: appuser
+        uid: 1000
+    container_name: tms-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - tms-network
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: tms-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - tms-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: tms-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: translation_management
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_USER: tms_user
+      MYSQL_PASSWORD: tms_password
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - tms-network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: tms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tms-network
+
+networks:
+  tms-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:

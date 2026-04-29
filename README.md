@@ -71,7 +71,7 @@ This normalized schema avoids JSON columns for tags, enabling efficient JOIN-bas
 
 - PHP 8.2 or higher
 - Composer
-- SQLite (included with PHP) or MySQL 8.0
+- MySQL 8.0
 
 ### Local Setup
 
@@ -88,9 +88,6 @@ cp .env.example .env
 
 # Generate application key
 php artisan key:generate
-
-# Create SQLite database
-touch database/database.sqlite
 
 # Run migrations
 php artisan migrate

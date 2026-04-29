@@ -208,9 +208,16 @@ php vendor/phpunit/phpunit/phpunit --testsuite=Feature
 
 ## API Documentation
 
-Full OpenAPI 3.0 specification is available at [`docs/openapi.yaml`](docs/openapi.yaml).
+The full interactive API documentation is hosted on SwaggerHub:
 
-You can view it using [Swagger Editor](https://editor.swagger.io/) or any OpenAPI-compatible tool.
+**🔗 [Translation Management Service API — SwaggerHub](https://app.swaggerhub.com/apis/CHRISTIANMARTINCABUC/translation-management-service-api/1.0.0)**
+
+The SwaggerHub page lets you:
+- Browse all endpoints with request/response schemas
+- Try out API calls directly from the browser
+- View authentication requirements and examples
+
+The raw OpenAPI 3.0 spec is also available locally at [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ## Project Structure
 
